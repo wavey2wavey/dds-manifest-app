@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transfer Manifest · AESL</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --card: #1d2029;
+    --border: #2a2e3d;
+    --accent: #f0a500;
+    --accent2: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --orange: #f97316;
+    --text: #e8eaf0;
+    --muted: #7b8098;
+    --early: #a855f7;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-head);
+    min-height: 100vh;
+  }
+
+  /* ─── Header ─── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text); }
+  .tagline {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+  }
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  /* ─── Layout ─── */
+  .main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+  .upload-zone {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 700px) {
+    .upload-zone { grid-template-columns: 1fr; }
+    .header-right { gap: 6px; }
+    .btn { padding: 8px 14px; font-size: 12px; }
+  }
+
+  .drop-card {
+    background: var(--card);
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .drop-card:hover, .drop-card.dragover {
+    border-color: var(--accent);
+    background: #1f2230;
+  }
+  .drop-card.loaded { border-color: var(--green); border-style: solid; }
+  .drop-card input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .drop-icon { font-size: 36px; margin-bottom: 10px; }
+  .drop-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .drop-sub { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .drop-status {
+    margin-top: 8px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--green);
+  }
+  .drop-error { color: var(--red); }
+
+  /* ─── Controls ─── */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: none;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { border-color: var(--accent); }
+  .btn-green { background: var(--green); color: #000; }
+  .btn-blue { background: var(--accent2); color: #fff; }
+
+  .filter-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+  .filter-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Stats bar ─── */
+  .stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .stat-pill {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .stat-pill strong { font-size: 20px; display: block; margin-bottom: 1px; }
+  .stat-pill.ktz strong { color: var(--accent); }
+  .stat-pill.ekp strong { color: var(--accent2); }
+  .stat-pill.unk strong { color: var(--early); }
+  .stat-pill.early strong { color: var(--orange); }
+  .stat-pill.flag strong { color: var(--red); }
+  .stat-pill.total strong { color: var(--green); }
+
+  /* ─── Table ─── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead tr {
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+  }
+  th {
+    padding: 12px 14px;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: #1f2230; }
+  tbody tr:last-child { border-bottom: none; }
+  td {
+    padding: 11px 14px;
+    vertical-align: middle;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 5px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .badge-ktz   { background: rgba(240,165,0,0.15);   color: var(--accent); }
+  .badge-ekp   { background: rgba(59,130,246,0.15);  color: var(--accent2); }
+  .badge-unk   { background: rgba(168,85,247,0.15);  color: var(--early); }
+  .badge-other { background: rgba(123,128,152,0.15); color: var(--muted); }
+
+  .flight-num {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent2);
+    font-weight: 700;
+  }
+  .time-chip {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: rgba(59,130,246,0.1);
+    color: var(--accent2);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .early-chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: rgba(249,115,22,0.15);
+    color: var(--orange);
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .flag-chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: rgba(239,68,68,0.15);
+    color: var(--red);
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .hotel-name { font-weight: 600; }
+  .name-cell  { font-weight: 600; }
+  .res-id { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .match-warn { color: var(--orange); font-size: 11px; font-family: var(--font-mono); }
+
+  /* ─── Empty / loading states ─── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state .big { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ─── Print / export ─── */
+  .print-header { display: none; }
+
+  @media print {
+    header, .upload-zone, .controls, .stats { display: none !important; }
+    body { background: #fff; color: #000; }
+    .table-wrap { border: 1px solid #ccc; }
+    th { background: #f0f0f0; color: #333; }
+    .badge-ktz { background: #fff3cd; color: #856404; }
+    .badge-ekp { background: #cfe2ff; color: #084298; }
+    .badge-unk { background: #e8d5ff; color: #5b21b6; }
+    .print-header { display: block; text-align: center; margin-bottom: 20px; }
+    .print-header h1 { font-size: 22px; margin-bottom: 4px; }
+    .print-header p { font-size: 13px; color: #666; }
+    .flight-num, .time-chip { color: #000; background: none; }
+    .early-chip { background: #ffe4cc; color: #c05600; }
+    .flag-chip  { background: #ffd5d5; color: #b91c1c; }
+  }
+
+  /* ─── Modal ─── */
+  /* FIX: removed the duplicate display:flex that was being overridden by display:none */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    display: none;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    max-width: 520px;
+    width: 94%;
+  }
+  .modal h2 { font-size: 18px; margin-bottom: 16px; }
+  .modal p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+  .modal code {
+    background: var(--surface);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">AESL <span>Transfers</span></div>
+    <div class="tagline">ARRIVAL MANIFEST GENERATOR</div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-outline" onclick="openHelp()">? Help</button>
+    <button class="btn btn-blue" onclick="window.print()">🖨 Print</button>
+    <button class="btn btn-green" id="exportBtn" onclick="exportCSV()" disabled>⬇ Export CSV</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Print-only header -->
+  <div class="print-header">
+    <h1>Arrival Transfer Manifest</h1>
+    <p id="printDate"></p>
+  </div>
+
+  <!-- File upload zone -->
+  <div class="upload-zone">
+    <div class="drop-card" id="flightCard"
+         ondragover="onDrag(event,'flightCard')"
+         ondragleave="offDrag('flightCard')"
+         ondrop="onDrop(event,'flight')">
+      <input type="file" accept=".rtf,.txt" onchange="loadFile(event,'flight')" id="flightInput">
+      <div class="drop-icon">✈️</div>
+      <div class="drop-title">Flight Details (RTF / TXT)</div>
+      <div class="drop-sub">Drag &amp; drop or click to upload</div>
+      <div class="drop-status" id="flightStatus"></div>
+    </div>
+    <div class="drop-card" id="roomCard"
+         ondragover="onDrag(event,'roomCard')"
+         ondragleave="offDrag('roomCard')"
+         ondrop="onDrop(event,'room')">
+      <input type="file" accept=".csv" onchange="loadFile(event,'room')" id="roomInput">
+      <div class="drop-icon">🏨</div>
+      <div class="drop-title">Rooming List (CSV)</div>
+      <div class="drop-sub">Drag &amp; drop or click to upload</div>
+      <div class="drop-status" id="roomStatus"></div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-primary" id="processBtn" onclick="processData()" disabled>⚡ Generate Manifest</button>
+    <button class="btn btn-outline" onclick="loadSampleData()">📋 Load Sample Data</button>
+    <div class="filter-group" id="filterGroup" style="display:none">
+      <span style="font-size:12px;color:var(--muted);font-family:var(--font-mono)">FILTER:</span>
+      <button class="filter-btn active" onclick="setFilter('all',this)">ALL</button>
+      <button class="filter-btn" onclick="setFilter('KTZ',this)">KTZ</button>
+      <button class="filter-btn" onclick="setFilter('EKP',this)">EKP</button>
+      <button class="filter-btn" onclick="setFilter('UNK',this)">UNK</button>
+      <button class="filter-btn" onclick="setFilter('early',this)">⚡ EARLY</button>
+      <button class="filter-btn" onclick="setFilter('flag',this)">⚠ FLAGS</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="statsBar" style="display:none"></div>
+
+  <!-- Table -->
+  <div class="table-wrap" id="manifestTable">
+    <div class="empty-state">
+      <div class="big">🗺️</div>
+      <p>Upload your flight details and rooming list,<br>then click <strong>Generate Manifest</strong>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal-bg" id="helpModal">
+  <div class="modal">
+    <h2>📖 How to use this app</h2>
+    <p><strong>1. Upload files</strong> — Drop your <code>.rtf</code> or <code>.txt</code> flight details file and the hotel rooming list (<code>.csv</code>) into the upload boxes above.</p>
+    <p><strong>2. Generate</strong> — Click <strong>Generate Manifest</strong>. The app matches clients by Reservation ID (e.g. <code>3070384</code>), falling back to token-based name matching if the ID is missing or unmatched.</p>
+    <p><strong>3. Read the flags:</strong><br>
+      <span class="early-chip">EARLY ARR</span> — Client's flight arrives before their hotel check-in date<br>
+      <span class="flag-chip">DATE MISMATCH</span> — Flight arrival date doesn't match check-in (and is not flagged as early)<br>
+      <span class="flag-chip">NO ROOM MATCH</span> — No rooming list entry could be found for this passenger
+    </p>
+    <p><strong>Tour code → Default hotel:</strong><br>
+      <code>KTZ</code> → Eka Hotel<br>
+      <code>UNK</code> → Tamarind Tree Hotel<br>
+      All others → taken directly from the rooming list
+    </p>
+    <p><strong>Export</strong> — Use <em>Export CSV</em> to download a spreadsheet, or <em>Print</em> for a printer-friendly version.</p>
+    <p><strong>Note on XLS files:</strong> Open your rooming list in Excel, choose <em>Save As → CSV</em>, then upload the <code>.csv</code> here.</p>
+    <button class="btn btn-primary" onclick="closeHelp()" style="margin-top:8px">Got it</button>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────
+let flightText  = null;
+let roomingData = null;
+let manifestRows = [];
+let currentFilter = 'all';
+
+// ─── Drag / drop helpers ─────────────────────────────
+function onDrag(e, id) {
+  e.preventDefault();
+  document.getElementById(id).classList.add('dragover');
+}
+function offDrag(id) {
+  document.getElementById(id).classList.remove('dragover');
+}
+function onDrop(e, type) {
+  e.preventDefault();
+  offDrag(type === 'flight' ? 'flightCard' : 'roomCard');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file, type);
+}
+
+// ─── File loading ────────────────────────────────────
+function loadFile(e, type) {
+  const file = e.target.files[0];
+  if (file) handleFile(file, type);
+}
+
+function handleFile(file, type) {
+  const reader = new FileReader();
+  if (type === 'flight') {
+    reader.onload = ev => {
+      flightText = ev.target.result;
+      document.getElementById('flightStatus').textContent = `✓ Loaded: ${file.name}`;
+      document.getElementById('flightCard').classList.add('loaded');
+      checkReady();
+    };
+    reader.readAsText(file);
+  } else {
+    // FIX: XLS/XLSX is not parseable in-browser without a library.
+    // Accept CSV only; show a clear, actionable message for other formats.
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      document.getElementById('roomStatus').innerHTML =
+        `<span class="drop-error">⚠ Please save your rooming list as CSV (File → Save As → CSV) and upload the .csv file.</span>`;
+      // Reset roomingData so the button stays correctly disabled
+      roomingData = null;
+      checkReady();
+      return;
+    }
+    reader.onload = ev => {
+      try {
+        roomingData = parseCSV(ev.target.result);
+        document.getElementById('roomStatus').textContent =
+          `✓ Loaded: ${file.name} (${roomingData.length} records)`;
+        document.getElementById('roomCard').classList.add('loaded');
+        checkReady();
+      } catch (err) {
+        document.getElementById('roomStatus').innerHTML =
+          `<span class="drop-error">✗ Error parsing CSV: ${err.message}</span>`;
+        roomingData = null;
+        checkReady();
+      }
+    };
+    reader.readAsText(file);
+  }
+}
+
+function checkReady() {
+  document.getElementById('processBtn').disabled = !(flightText && roomingData);
+}
+
+// ─── CSV parser ───────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.split('\n');
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('Pgm Code') || lines[i].includes('Res #')) {
+      headerIdx = i; break;
+    }
+  }
+  if (headerIdx === -1) throw new Error('Cannot find header row — expected a column named "Pgm Code" or "Res #"');
+
+  const headers = parseCSVLine(lines[headerIdx]);
+  const rows = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const vals = parseCSVLine(line);
+    if (vals.every(v => !v.trim())) continue;
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h.trim()] = (vals[idx] || '').trim(); });
+    // Skip rows with no Res # at all
+    if (!obj['Res #']) continue;
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      // Handle escaped double-quotes ("")
+      if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
+      else { inQuote = !inQuote; }
+    } else if (c === ',' && !inQuote) {
+      result.push(cur); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ─── Flight parser ────────────────────────────────────
+/**
+ * Parses the full flight text and returns an array of passenger objects.
+ *
+ * Key fixes applied (per Core Logic doc):
+ *  1. Multi-passenger blocks: the regex no longer hardcodes "1." — it matches
+ *     any numbered passenger entry within a block.
+ *  2. Passengers in the same block inherit the block's flight/date/tour.
+ *  3. arrTime handles both "07H40PM" and "0740PM" formats.
+ */
+function parseFlights(text) {
+  const clients = [];
+
+  // Split the file into per-transfer blocks.
+  // Each block starts with a header like: "KTZ 11.27 ARRIVE 27NOV UA9952 @ 07H40PM"
+  const blocks = text.split(/(?=\n?[A-Z]{2,4}\s+\d+\.\d+\s+ARRIVE)/);
+
+  for (const block of blocks) {
+    // Extract the block header
+    const hLine = block.match(
+      /([A-Z]{2,4})\s+\d+\.\d+\s+ARRIVE\s+(\d{1,2}[A-Z]{3})\s+(\S+)\s+@\s+([\dH]+[AP]M)/i
+    );
+    if (!hLine) continue;
+
+    const tourCode  = hLine[1].toUpperCase();
+    const arrDate   = hLine[2].toUpperCase();
+    const finalFlight = hLine[3].toUpperCase();
+
+    // FIX: normalise time — handle both "07H40PM" and "0740PM" (no H separator)
+    const rawTime = hLine[4].toUpperCase();
+    const arrTime = rawTime.includes('H')
+      ? rawTime.replace('H', ':')          // "07H40PM" → "07:40PM"
+      : rawTime.replace(/^(\d{1,2})(\d{2})/, '$1:$2'); // "740PM" → "7:40PM"
+
+    const isEarlyBlock = /early\s+arrival/i.test(block);
+
+    // FIX: match ALL numbered passenger lines (1., 2., 3. …) not just "1."
+    // Pattern: "  N.LASTNAME/FIRSTNAME(ID TOURCODE DATE RESID O)"
+    const paxPattern = /\d+\.\s*([A-Z][A-Z\/\s\-]+?)\(ID\s+(\w+)\s+(\w+)\s+(\d{6,8})\s+\w\)/gi;
+    let pm;
+    while ((pm = paxPattern.exec(block)) !== null) {
+      const rawName = pm[1].trim();
+      const resId   = pm[4];
+
+      // "EARLY ARRIVAL" may appear on this specific passenger's line
+      const paxIsEarly = isEarlyBlock ||
+        /early\s+arrival/i.test(block.substring(pm.index, pm.index + 120));
+
+      clients.push({
+        rawName,
+        displayName: formatName(rawName),
+        tourCode,
+        arrDate,
+        arrTime,
+        flightNum: finalFlight,
+        resId,
+        isEarlyInFlight: paxIsEarly
+      });
+    }
+  }
+
+  return clients;
+}
+
+function formatName(raw) {
+  // raw: "SMITH/PAMELA KAY" → "Pamela Kay Smith"
+  const parts = raw.split('/');
+  if (parts.length === 2) {
+    const last  = parts[0].trim();
+    const first = parts[1].trim();
+    return `${toTitleCase(first)} ${toTitleCase(last)}`;
+  }
+  return toTitleCase(raw);
+}
+
+function toTitleCase(s) {
+  return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ─── Matching logic ───────────────────────────────────
+const HOTEL_DEFAULTS = {
+  KTZ: 'Eka Hotel',
+  UNK: 'Tamarind Tree Hotel'
+};
+
+/**
+ * FIX: token-based name matching.
+ * Breaks both the flight name and the rooming list "Travelers" cell into
+ * individual word tokens, then checks for enough overlapping tokens.
+ * This handles:
+ *  - Reversed name order:  "MCLEVIE SPOONER/ANNE"  vs "Ms Anne Mclevie Spooner"
+ *  - Title prefixes (Mr, Ms, Mrs) stripped before comparison
+ *  - Short names (>= 2 chars compared, not > 3)
+ */
+function matchRooming(flight, roomingRows) {
+  // Primary: match by Res #
+  let match = roomingRows.find(r =>
+    r['Res #'] && r['Res #'].trim() === flight.resId
+  );
+  if (match) return match;
+
+  // Fallback: token-based name match
+  const STOP_WORDS = new Set(['mr', 'ms', 'mrs', 'dr', 'miss']);
+  const flightTokens = flight.rawName
+    .toLowerCase()
+    .replace(/\//g, ' ')
+    .split(/\s+/)
+    .filter(t => t.length >= 2 && !STOP_WORDS.has(t));
+
+  match = roomingRows.find(r => {
+    const travelers = (r['Travelers'] || '').toLowerCase();
+    const roomTokens = travelers
+      .split(/[\s,]+/)
+      .filter(t => t.length >= 2 && !STOP_WORDS.has(t));
+
+    // Require at least 2 tokens to match (avoids false positives on single names)
+    const hits = flightTokens.filter(t => roomTokens.includes(t));
+    return hits.length >= 2;
+  });
+
+  return match || null;
+}
+
+function getHotel(flight, roomMatch) {
+  if (roomMatch && roomMatch['Hotel'] && roomMatch['Hotel'].trim()) {
+    return roomMatch['Hotel'].trim();
+  }
+  return HOTEL_DEFAULTS[flight.tourCode] || 'See Rooming List';
+}
+
+function getCheckIn(roomMatch) {
+  if (!roomMatch) return null;
+  return roomMatch['Chk In Date'] || null;
+}
+
+/**
+ * FIX: year is now derived from the check-in date string rather than
+ * being hardcoded to 2024, so this works across tour seasons.
+ */
+function parseTourDate(flightArrDate, referenceDate) {
+  const MONTHS = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+  const m = flightArrDate.match(/(\d{1,2})([A-Z]{3})/i);
+  if (!m) return null;
+  const month = MONTHS[m[2].toUpperCase()];
+  const day   = parseInt(m[1], 10);
+  // Derive year from the check-in date so the app works in any year
+  const refYear = referenceDate ? new Date(referenceDate).getFullYear() : new Date().getFullYear();
+  const d = new Date(refYear, month, day);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function dateMismatch(flightArrDate, checkInDate) {
+  if (!checkInDate || !flightArrDate) return false;
+  const fd = parseTourDate(flightArrDate, checkInDate);
+  const cd = new Date(checkInDate);
+  if (!fd || isNaN(cd)) return false;
+  cd.setHours(0, 0, 0, 0);
+  return fd.getTime() !== cd.getTime();
+}
+
+function isEarlyArrival(flightArrDate, checkInDate) {
+  if (!checkInDate || !flightArrDate) return false;
+  const fd = parseTourDate(flightArrDate, checkInDate);
+  const cd = new Date(checkInDate);
+  if (!fd || isNaN(cd)) return false;
+  cd.setHours(0, 0, 0, 0);
+  // Early arrival: the flight lands BEFORE the official check-in date
+  return fd < cd;
+}
+
+// ─── Process ──────────────────────────────────────────
+function processData() {
+  if (!flightText || !roomingData) return;
+
+  const flights = parseFlights(flightText);
+  if (!flights.length) {
+    alert('Could not parse any passengers from the flight details file.\nPlease check that the file contains lines like:\n  KTZ 11.27 ARRIVE 27NOV UA9952 @ 07H40PM\n  1.SMITH/JOHN(ID KTZ 27NOV 3070384 O)');
+    return;
+  }
+
+  manifestRows = flights.map(f => {
+    const room     = matchRooming(f, roomingData);
+    const hotel    = getHotel(f, room);
+    const checkIn  = getCheckIn(room);
+    const early    = isEarlyArrival(f.arrDate, checkIn) || f.isEarlyInFlight;
+    const mismatch = !early && dateMismatch(f.arrDate, checkIn);
+    const matched  = !!room;
+
+    return { ...f, hotel, checkIn, early, mismatch, matched };
+  });
+
+  // Sort by arrival date then time
+  manifestRows.sort((a, b) => {
+    if (a.arrDate < b.arrDate) return -1;
+    if (a.arrDate > b.arrDate) return  1;
+    return a.arrTime.localeCompare(b.arrTime);
+  });
+
+  renderTable();
+  renderStats();
+  document.getElementById('filterGroup').style.display = 'flex';
+  document.getElementById('exportBtn').disabled = false;
+  document.getElementById('printDate').textContent =
+    `Generated: ${new Date().toLocaleString()}`;
+}
+
+// ─── Render ───────────────────────────────────────────
+function renderTable() {
+  let rows = manifestRows;
+  if      (currentFilter === 'KTZ')   rows = rows.filter(r => r.tourCode === 'KTZ');
+  else if (currentFilter === 'EKP')   rows = rows.filter(r => r.tourCode === 'EKP');
+  else if (currentFilter === 'UNK')   rows = rows.filter(r => r.tourCode === 'UNK');
+  else if (currentFilter === 'early') rows = rows.filter(r => r.early);
+  else if (currentFilter === 'flag')  rows = rows.filter(r => r.mismatch || !r.matched);
+
+  const wrap = document.getElementById('manifestTable');
+
+  if (!rows.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="big">🔍</div><p>No records match this filter.</p></div>`;
+    return;
+  }
+
+  let html = `<table>
+    <thead><tr>
+      <th>#</th>
+      <th>PASSENGER</th>
+      <th>RES ID</th>
+      <th>TOUR</th>
+      <th>ARR DATE</th>
+      <th>ARR TIME</th>
+      <th>FLIGHT</th>
+      <th>HOTEL</th>
+      <th>CHECK-IN</th>
+      <th>NOTES</th>
+    </tr></thead>
+    <tbody>`;
+
+  rows.forEach((r, i) => {
+    const code = r.tourCode.toLowerCase();
+    const badgeClass = ['ktz','ekp','unk'].includes(code) ? `badge-${code}` : 'badge-other';
+    const tourBadge = `<span class="badge ${badgeClass}">${r.tourCode}</span>`;
+
+    const notes = [];
+    if (r.early)    notes.push(`<span class="early-chip">EARLY ARR</span>`);
+    if (r.mismatch) notes.push(`<span class="flag-chip">DATE MISMATCH</span>`);
+    if (!r.matched) notes.push(`<span class="flag-chip">NO ROOM MATCH</span>`);
+
+    html += `<tr>
+      <td style="color:var(--muted);font-family:var(--font-mono)">${i + 1}</td>
+      <td class="name-cell">${escHtml(r.displayName)}</td>
+      <td class="res-id">${escHtml(r.resId || '—')}</td>
+      <td>${tourBadge}</td>
+      <td style="font-family:var(--font-mono);font-weight:600">${escHtml(r.arrDate)}</td>
+      <td><span class="time-chip">${escHtml(r.arrTime)}</span></td>
+      <td class="flight-num">${escHtml(r.flightNum)}</td>
+      <td class="hotel-name">${escHtml(r.hotel)}</td>
+      <td style="font-family:var(--font-mono);font-size:12px">${escHtml(r.checkIn || '—')}</td>
+      <td>${notes.join('') || '<span style="color:var(--muted);font-size:11px">—</span>'}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function renderStats() {
+  const bar   = document.getElementById('statsBar');
+  bar.style.display = 'flex';
+  const total = manifestRows.length;
+  const ktz   = manifestRows.filter(r => r.tourCode === 'KTZ').length;
+  const ekp   = manifestRows.filter(r => r.tourCode === 'EKP').length;
+  const unk   = manifestRows.filter(r => r.tourCode === 'UNK').length;
+  const early = manifestRows.filter(r => r.early).length;
+  const flags = manifestRows.filter(r => r.mismatch || !r.matched).length;
+
+  bar.innerHTML = `
+    <div class="stat-pill total"><strong>${total}</strong>TOTAL PAX</div>
+    <div class="stat-pill ktz"><strong>${ktz}</strong>KTZ</div>
+    <div class="stat-pill ekp"><strong>${ekp}</strong>EKP</div>
+    <div class="stat-pill unk"><strong>${unk}</strong>UNK</div>
+    <div class="stat-pill early"><strong>${early}</strong>EARLY ARR</div>
+    <div class="stat-pill flag"><strong>${flags}</strong>FLAGS</div>
+  `;
+}
+
+// ─── Filter ───────────────────────────────────────────
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+// ─── Export CSV ───────────────────────────────────────
+function exportCSV() {
+  const headers = [
+    '#','Passenger','Res ID','Tour Code',
+    'Arrival Date','Arrival Time','Flight',
+    'Hotel','Check-In','Early Arrival','Date Mismatch','Room Matched'
+  ];
+  const rows = manifestRows.map((r, i) => [
+    i + 1, r.displayName, r.resId || '', r.tourCode,
+    r.arrDate, r.arrTime, r.flightNum,
+    r.hotel, r.checkIn || '',
+    r.early    ? 'YES' : '',
+    r.mismatch ? 'YES' : '',
+    r.matched  ? 'YES' : 'NO'
+  ]);
+  const csv = [headers, ...rows]
+    .map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `transfer-manifest-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  // Clean up the object URL after download
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+// ─── XSS helper ───────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ─── Sample data ──────────────────────────────────────
+function loadSampleData() {
+  flightText = `KTZ 11.27 ARRIVE 27NOV UA9952 @ 07H40PM – 1 PAX – TRANSFER CONFIRMED WITH PRIMATE SAFARI
+
+  1.DOUTLICK/DEBORAH JOSEPHINE(ID KTZ 27NOV 3070384 O)   EARLY ARRIVAL
+
+  4  UA9952 R 27NOV 2*BRUKGL HK1  1015A 740P 27NOV  E  UA/PNTG5T
+
+
+KTR 11.27 ARRIVE 28NOV SN465 @ 07H40PM – 1 PAX – TRANSFER CONFIRMED WITH PRIMATE SAFARI
+
+  1.RITTENHOUSE/PAMELA SUSAN(ID KTR 28NOV 3401828 O)
+
+  4  SN 465 N 28NOV 4 BRUKGL HK1  1015A 740P 28NOV  E  SN/4M2AG5
+
+
+KTZ 11.27 ARRIVE 28NOV UA9952 @ 07H40PM – 2 PAX – TRANSFER CONFIRMED WITH PRIMATE SAFARI
+
+  1.TOFANELLI/JEAN MARIE(ID KTZ 28NOV 3452498 O)
+  2.SPOONER/RICHARD WILLIAM(ID KTZ 28NOV 3456750 O)
+
+  4  UA9952 P 28NOV 4*BRUKGL HK1  1015A 740P 28NOV  E  UA/GL5J6Z
+`;
+
+  const csvText = `,Pgm Code,Depart Date,Chk In Date,Chk Out Date,Shr #,,Occ,Res #,,Pax,Nites,Option Type,,,Option Sts,Location,Allot inUse,Region,Hotel,Hotel code,Hotel Sts,,Air/No Air,LOX Flg,Share Name,Travelers,Passport,PP Exp,Add Date,1st Pre Hotel Arr,1st Base Hotel Arr,Last Hotel Depart
+,KTZ,12/01/2024,11/27/2024,12/02/2024,0,,SGL,3070384,,1,5,Arrive Early,,,Active,Nairobi,,Africa,EKA HOTEL,KTZEK,Change Confirmed,,No Air,Y,,Ms Deborah Josephine Doutlick,660349240,10/19/2030,08/11/2022,,12/02/2024,12/06/2024
+,KTR,12/01/2024,11/28/2024,12/02/2024,0,,SGL,3401828,,1,4,Arrive Early,,,Active,Nairobi,,Africa,EKA HOTEL,KTZEK,Request Confirmed,,Air,,,Ms Pamela Susan Rittenhouse,651063457,8/13/2029,08/23/2024,,12/02/2024,12/06/2024
+,KTZ,12/01/2024,11/28/2024,12/02/2024,0,,SGL,3452498,,1,4,Arrive Early,,,Active,Nairobi,,Africa,EKA HOTEL,KTZEK,Request Confirmed,,Air,,,Ms Jean Marie Tofanelli,541576467,3/6/2026,08/26/2024,,12/02/2024,12/06/2024
+,KTZ,12/01/2024,11/28/2024,12/02/2024,0,,DBL,3456750,,2,4,Arrive Early,,,Active,Nairobi,,Africa,EKA HOTEL,KTZEK,Request Confirmed,,Air,,,"Mr Richard William Spooner, Ms Anne Mclevie Spooner",541576468,3/6/2026,08/26/2024,,12/02/2024,12/06/2024
+`;
+
+  roomingData = parseCSV(csvText);
+
+  document.getElementById('flightStatus').textContent = '✓ Sample flight data loaded (2-pax block included)';
+  document.getElementById('flightCard').classList.add('loaded');
+  document.getElementById('roomStatus').textContent = `✓ Sample rooming list loaded (${roomingData.length} records)`;
+  document.getElementById('roomCard').classList.add('loaded');
+  checkReady();
+  processData();
+}
+
+// ─── Help modal ───────────────────────────────────────
+function openHelp()  { document.getElementById('helpModal').classList.add('open'); }
+function closeHelp() { document.getElementById('helpModal').classList.remove('open'); }
+document.getElementById('helpModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('helpModal')) closeHelp();
+});
+</script>
+</body>
+</html>
